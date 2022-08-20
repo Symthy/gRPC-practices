@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package file;
+
+option go_package = "./pb";
+
+message UploadAndNotifyRequest {
+    bytes data = 1;
+};
+message UploadAndNotifyResponse {
+    string msg = 1;
+};
+
+service FileService {
+    rpc UploadAndNotify (stream UploadAndNotifyRequest) returns (stream UploadAndNotifyResponse);
+}

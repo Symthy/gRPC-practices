@@ -65,9 +65,13 @@ ref: [Envoy: gRPC](https://qiita.com/kentakozuka/items/b4b7a1686df1e57bc5c5)
 
 > Connect は、ブラウザや gRPC 互換の HTTP API を構築するためのライブラリ群です。短い Protocol Buffer スキーマを記述し、アプリケーションロジックを実装すると、 Connect がマーシャリング、ルーティング、圧縮、コンテントタイプネゴシエーションを処理するコードを生成します。また、サポートされているあらゆる言語で、慣用的なタイプセーフなクライアントが生成されます。
 
-ref: [Connect Docs Introduction](https://connect.build/docs/introduction/)
+ref: [Connect Docs - Introduction](https://connect.build/docs/introduction/)
 
-ドキュメントを読む限り、Connect は独自のプロトコル（Connect プロトコル？）を用いることで、gRPC を使うなら HTTP/2.0 前提の制約を解消したように取れる。gRPc/gRPC-Web プロトコルをサポートしているから、既に gRPc/gRPC-Web を使用しているシステムでクライアント/サーバ片側だけ Connect に入れ替えてひとまず gRPc/gRPC-Web を使うといったことも可能なのでは？（＝段階移行可能？）
+> 新しい Connect プロトコルは、HTTP/1.1 または HTTP/2 で動作する、シンプルな POST プロトコルです。ストリーミングを含む gRPC と gRPC-Web の最良の部分を取り込み、ブラウザ、モノリス、マイクロサービスにおいて同様に動作するプロトコルにパッケージ化しました。Connect プロトコルは、私たちが考える gRPC プロトコルのあるべき姿です。デフォルトでは、JSON とバイナリでエンコードされた Protobuf がサポートされています。
+
+ref [Connect Docs - Use the gRPC protocol instead of the Connect protocol](https://connect.build/docs/go/getting-started#use-the-grpc-protocol-instead-of-the-connect-protocol)
+
+ドキュメントを読む限り、Connect は独自のプロトコル（Connect プロトコル？）を用いることで、gRPC を使うなら HTTP/2.0 前提だった制約を解消したように取れる。gRPc/gRPC-Web プロトコルをサポートしているから、既に gRPc/gRPC-Web を使用しているシステムでクライアント/サーバ片側だけ Connect に入れ替えてひとまず gRPc/gRPC-Web を使うといったことも可能？（＝段階移行可能？）なようにも読み取れる
 
 - Connect は、ストリーミングを含む gRPC および gRPC-Web プロトコルを完全にサポート
 - Connect は独自のプロトコルをサポートしている（HTTP/1.1 と HTTP/2 で動作する簡単で POST のみのプロトコル）
@@ -89,14 +93,209 @@ ref: [Connect Docs Introduction](https://connect.build/docs/introduction/)
 
 ## チュートリアル
 
-API 実行するだけでいい。（素晴らしい）
+### connect-go
+
+#### Get Stated
 
 ```
-curl \
+mkdir connect-go-example
+cd connect-go-example
+go mod init example
+go install github.com/bufbuild/buf/cmd/buf@latest
+go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install github.com/bufbuild/connect-go/cmd/protoc-gen-connect-go@latest
+```
+
+サービスを定義
+
+```
+mkdir -p greet/v1
+touch greet/v1/greet.proto
+```
+
+buf.yaml 生成～コード自動生成
+
+```
+buf mod init
+// buf.gen.yaml を生成してから
+buf lint
+buf generate
+```
+
+tutorial のコードをそのまま実装。中身的には gRPC のはずなのに curl でリクエスト投げればレスポンスが返ってくる（素晴らしい）
+
+```
+$ curl \
     --header "Content-Type: application/json" \
     --data '{"name": "Jane"}' \
     http://localhost:8080/greet.v1.GreetService/Greet
+
+{"greeting":"Hello, Jane!"}
 ```
+
+### ルーティング
+
+通常の API との併用も可能
+
+```golang
+	api := http.NewServeMux()
+	path, handler := greetv1connect.NewGreetServiceHandler(&server.GreetServer{})
+	api.Handle(path, handler)
+
+	mux := http.NewServeMux()
+	// mux.Handle(path, handler)
+	mux.Handle("/hello", helloHandler{})
+	mux.Handle("/connect/", http.StripPrefix("/connect", api))
+	http.ListenAndServe(
+		"localhost:8080",
+		// Use h2c so we can serve HTTP/2 without TLS.
+		h2c.NewHandler(mux, &http2.Server{}),
+	)
+```
+
+```
+$ curl --header "Content-Type: application/json" --data '{"name": "Jane"}' http://localhost:8080/connect/greet.v1.GreetService/Greet
+{"greeting":"Hello, Jane!"}
+
+$ curl http://localhost:8080/hello
+{"message":"hello world"}
+```
+
+#### ERROR
+
+エラーコードとの対応： https://connect.build/docs/protocol/#error-codes
+
+- connect.CodeInvalidArgument
+
+```
+$ curl --header "Content-Type: application/json" --data '{"name": ""}' http://localhost:8080/connect/greet.v1.GreetService/Greet
+{"code":"invalid_argument","message":"No name specified for greeting"}
+```
+
+- connect.CodeUnknown
+
+```
+$ curl --header "Content-Type: application/json" --data '{"name": "error"}' http://localhost:8080/connect/greet.v1.GreetService/Greet
+{"code":"unknown","message":"invalid name"}
+```
+
+#### Interceptors
+
+- ミドルウェアまたはデコレータに似たもの。Connect を拡張するための主要な方法
+- コンテキスト、要求、応答、およびエラーを変更可能。また、ロギング、メトリック、トレース、再試行などの機能を追加するためによく使用
+
+docs の NewAuthInterceptor を実装：https://connect.build/docs/go/interceptors
+
+概要：トークンヘッダー：Acme-Token がないとエラー
+
+- トークンヘッダーなし
+
+```
+$ curl --header "Content-Type: application/json" --data '{"name": "Jane"}' http://localhost:8080/connect/greet.v1.GreetService/Greet
+{"code":"unauthenticated","message":"no token provided"}
+```
+
+```
+$ go run cmd/client/main.go
+2022/08/24 22:50:42 unauthenticated: no token provided
+```
+
+- トークンヘッダーあり
+
+```
+$ curl --header "Content-Type: application/json" -H "Acme-Token: test" --data '{"name": "Jane"}' http://localhost:8080/connect/greet.v1.GreetService/Greet
+{"greeting":"Hello, Jane!"}
+```
+
+```
+$ go run cmd/client/main.go
+2022/08/24 22:53:09 Hello, Jane!
+```
+
+#### Streaming
+
+docs のコードを実装：https://connect.build/docs/go/streaming
+
+streming で送信する必要があるので、クライアント側に以下を追加して送信してみた
+
+```golang
+	clientStream := client.Greet(
+		context.Background(),
+	)
+	clientStream.Send(&greetv1.GreetRequest{Name: "Verstappen"})
+	clientStream.Send(&greetv1.GreetRequest{Name: "Hamilton"})
+	clientStream.Send(&greetv1.GreetRequest{Name: "Leclerc"})
+	res2, err := clientStream.CloseAndReceive()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	log.Println(res2.Msg.Greeting)
+```
+
+出力
+
+```
+2022/08/25 00:04:31 Hello, Verstappen!
+Hello, Hamilton!
+Hello, Leclerc!
+```
+
+### connect-web
+
+初期構築
+
+```
+npm create vite@latest -- connect-web-example --template react-ts
+cd connect-web-example
+npm install
+```
+
+#### remote generation
+
+```
+// 以下2行は Buf Schema Registry の機能であるリモート生成を使するため
+// 対象： https://buf.build/bufbuild/eliza
+npm config set @buf:registry https://npm.buf.build
+npm install @buf/bufbuild_connect-web_bufbuild_eliza
+```
+
+★[Buf Schema Registry (BSR)](https://buf.build/)
+
+- 2022/8 末時点まだベータ版。Github や DockerHub の buf 版のようなイメージのもの
+
+> - Protocol Buffers を使用するためには、使用する言語ごとにコードを生成する必要がある ⇒ この手間を解消する リモートコード生成機能がある
+> - 標準のパッケージマネージャーとビルドツールを使用して Protobuf 定義から生成されたコードを直接インストール可能
+> - 2022/8 末時点 alpha 版だが JavaScript、TypeScript、Go のリモートコード生成をサポート（npm/yarn/go module 等でインストール可能）
+> - ローカルでコード生成する必要がないため、ワークフローからのコード生成を排除したり、protoc プラグインのような実行時の依存関係を維持する必要がなくなる
+
+ref: [Buf Docs - Remote generation](https://docs.buf.build/bsr/remote-generation/overview)
+
+[Connect for Web - Getting started](https://connect.build/docs/web/getting-started) のコードを実装して
+
+```
+npm run dev
+```
+
+![](images/connect-web-ELIZAres.png)
+
+#### local generation
+
+ローカル生成も可能：https://connect.build/docs/web/generating-code
+
+```
+npm install --save-dev @bufbuild/protoc-gen-connect-web @bufbuild/protoc-gen-es
+npm install @bufbuild/connect-web @bufbuild/protobuf
+```
+
+docs にある内容で buf.gen.yaml 作成して
+
+```
+buf generate
+```
+
+#### Using clients
 
 ## おまけ
 

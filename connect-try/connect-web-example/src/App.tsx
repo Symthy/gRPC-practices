@@ -1,68 +1,29 @@
-import { FormEvent, useState } from "react";
-import reactLogo from "./assets/react.svg";
+import { Link, Route, Routes } from "react-router-dom";
 import "./App.css";
-import {
-  createConnectTransport,
-  createPromiseClient,
-} from "@bufbuild/connect-web";
-import { ElizaService } from "@buf/bufbuild_connect-web_bufbuild_eliza/buf/connect/demo/eliza/v1/eliza_connectweb";
+import { ElizaCallbackForm } from "./components/eliza/ElizaCallbackForm";
+import { ElizaFormByLocalGen as ElizaFormByBufLocalGen } from "./components/eliza/ElizaFormByLocalGen";
+import { ElizaFormByRemoteGen as ElizaFormByBufRemoteGen } from "./components/eliza/ElizaFormByRemoteGen";
+import { ElizaStreamingForm } from "./components/eliza/ElizaStreamingForm";
 
-// endpoint
-const transport = createConnectTransport({
-  baseUrl: "https://demo.connect.build",
-});
-
-const client = createPromiseClient(ElizaService, transport);
-
-type Message = {
-  fromMe: boolean;
-  message: string;
-};
-
-function App() {
-  const [inputValue, setInputValue] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
-
-  const onSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setInputValue("");
-    setMessages((prev) => [
-      ...prev,
-      {
-        fromMe: true,
-        message: inputValue,
-      },
-    ]);
-    const response = await client.say({
-      sentence: inputValue,
-    });
-    setMessages((prev) => [
-      ...prev,
-      {
-        fromMe: false,
-        message: response.sentence,
-      },
-    ]);
-  };
-
+export const App = () => {
   return (
     <>
-      <ol>
-        {messages.map((msg, index) => (
-          <li key={index}>
-            {`${msg.fromMe ? "ME:" : "ELIZA:"} ${msg.message}`}
-          </li>
-        ))}
-      </ol>
-      <form onSubmit={onSubmit}>
-        <input
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-        />
-        <button type="submit">Send</button>
-      </form>
+      <nav>
+        <Link to="eliza-remote-gen">{"Eliza Form (by Remote Generation)"}</Link>
+        {" | "}
+        <Link to="eliza-local-gen">{"Eliza Form (by Local Generation)"}</Link>
+        {" | "}
+        <Link to="eliza-callback">{"Eliza Form (by Callback)"}</Link>
+        {" | "}
+        <Link to="eliza-streaming">{"Eliza Form (by Streaming)"}</Link>
+      </nav>
+      <Routes>
+        <Route index element={<ElizaFormByBufRemoteGen />} /> {/* redirect */}
+        <Route path="/eliza-remote-gen" element={<ElizaFormByBufRemoteGen />} />
+        <Route path="/eliza-local-gen" element={<ElizaFormByBufLocalGen />} />
+        <Route path="/eliza-callback" element={<ElizaCallbackForm />} />
+        <Route path="/eliza-streaming" element={<ElizaStreamingForm />} />
+      </Routes>
     </>
   );
-}
-
-export default App;
+};

@@ -3,15 +3,10 @@ import { ServiceType } from "@bufbuild/protobuf";
 import {
   CallbackClient,
   createCallbackClient,
-  createConnectTransport,
   createPromiseClient,
   PromiseClient,
 } from "@bufbuild/connect-web";
-
-// endpoint (通信先)
-const transport = createConnectTransport({
-  baseUrl: "https://demo.connect.build",
-});
+import { transport } from "../config";
 
 export const usePromiseClient = <T extends ServiceType>(
   service: T

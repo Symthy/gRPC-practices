@@ -1,5 +1,6 @@
 import { ChangeEvent, FormEvent } from "react";
 import { Message } from "../../types";
+import { ConnectErrorView } from "../ConnectErrorView";
 
 type ElizaFormProps = {
   inputValue: string;
@@ -27,6 +28,7 @@ export const ElizaForm = ({
         <input value={inputValue} onChange={setSendValue} />
         <button type="submit">Send</button>
       </form>
+      <ConnectErrorView />
     </>
   );
 };

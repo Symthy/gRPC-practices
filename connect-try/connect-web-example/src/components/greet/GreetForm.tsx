@@ -1,36 +1,38 @@
-import { ElizaService } from "@buf/bufbuild_connect-web_bufbuild_eliza/buf/connect/demo/eliza/v1/eliza_connectweb";
-import { useCallbackClient, usePromiseClient } from "../../hooks/useClient";
+import { ConnectError } from "@bufbuild/connect-web";
 import { ChangeEvent, FormEvent, useState } from "react";
+import { useConnectError } from "../../hooks/useConnectError";
 import { useSayMessages } from "../../hooks/useSayMessages";
 import { SendForm } from "../SendForm";
+import { useLocalClient } from "../../hooks/useClient";
 import { ConnectErrorView } from "../ConnectErrorView";
-import { ConnectError } from "@bufbuild/connect-web";
-import { useConnectError } from "../../hooks/useConnectError";
 
-export const ElizaCallbackForm = () => {
-  const client = useCallbackClient(ElizaService);
+export const GreetForm = () => {
   const [inputValue, setInputValue] = useState("");
+  const client = useLocalClient();
   const { messages, setSendMessage, setRecvMessage } = useSayMessages();
   const { connectError, setConnectError, clearConnectError } =
     useConnectError();
 
-  const onSendMessage = (e: FormEvent) => {
+  const onSendMessage = async (e: FormEvent) => {
     e.preventDefault();
     setInputValue("");
     setSendMessage(inputValue);
     clearConnectError();
 
-    client.say({ sentence: inputValue }, (err, res) => {
-      if (err) {
-        if (err instanceof ConnectError) {
-          setConnectError(err);
-        }
-        console.log(err);
+    const headers = new Headers();
+    headers.set("Acme-Token", "any");
+    try {
+      const response = await client.greet(
+        { name: inputValue },
+        { headers: headers }
+      );
+      setRecvMessage(response.greeting);
+    } catch (err) {
+      // We have to verify err is a ConnectError before using it as one.
+      if (err instanceof ConnectError) {
+        setConnectError(err);
       }
-      if (!err) {
-        setRecvMessage(res.sentence);
-      }
-    });
+    }
   };
 
   const setSendValue = (e: ChangeEvent<HTMLInputElement>) =>
@@ -43,7 +45,7 @@ export const ElizaCallbackForm = () => {
         messages={messages}
         setSendValue={setSendValue}
         onSendMessage={onSendMessage}
-      />
+      ></SendForm>
       <ConnectErrorView err={connectError} />
     </>
   );

@@ -1,20 +1,21 @@
 import { ChangeEvent, FormEvent } from "react";
-import { Message } from "../../types";
-import { ConnectErrorView } from "../ConnectErrorView";
+import { Message } from "../types";
+import { ConnectErrorView } from "./ConnectErrorView";
 
-type ElizaFormProps = {
+type SendFormProps = {
   inputValue: string;
   messages: Message[];
   setSendValue: (e: ChangeEvent<HTMLInputElement>) => void;
   onSendMessage: (e: FormEvent) => Promise<void> | void;
 };
 
-export const ElizaForm = ({
+export const SendForm = ({
   inputValue,
   messages,
   setSendValue,
   onSendMessage,
-}: ElizaFormProps) => {
+}: SendFormProps) => {
+  console.log("load send form");
   return (
     <>
       <ol>
@@ -28,7 +29,6 @@ export const ElizaForm = ({
         <input value={inputValue} onChange={setSendValue} />
         <button type="submit">Send</button>
       </form>
-      <ConnectErrorView />
     </>
   );
 };

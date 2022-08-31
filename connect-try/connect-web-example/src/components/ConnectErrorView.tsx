@@ -1,13 +1,22 @@
+import { codeToString, ConnectError } from "@bufbuild/connect-web";
 import { useConnectError } from "../hooks/useConnectError";
 
-export const ConnectErrorView = () => {
-  const { isError, errorMessage } = useConnectError();
+type ConnectErrorViewProps = {
+  err: ConnectError | undefined;
+};
+
+export const ConnectErrorView = ({ err }: ConnectErrorViewProps) => {
+  console.log("lood error view");
+  const isError = !!err;
+  const errorMessage = isError
+    ? `Code: ${codeToString(err.code)} | Message: ${err.rawMessage}`
+    : "";
   return (
     <>
       {isError && (
         <div>
-          <p>Error:</p>
-          <p style={{ color: "red" }}>{errorMessage}</p>
+          <span style={{ color: "red" }}>{`[Error]`} </span>
+          <span>{errorMessage}</span>
         </div>
       )}
     </>

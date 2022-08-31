@@ -1,5 +1,5 @@
 import { codeToString, ConnectError } from "@bufbuild/connect-web";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 export const useConnectError = () => {
   const [connectError, setConnectError] = useState<ConnectError | undefined>(
@@ -8,9 +8,5 @@ export const useConnectError = () => {
   const clearConnectError = () => {
     setConnectError(undefined);
   };
-  const isError = !!connectError;
-  const errorMessage = isError
-    ? `${codeToString(connectError.code)} | ${connectError.rawMessage}`
-    : "";
-  return { isError, errorMessage, setConnectError, clearConnectError };
+  return { connectError, setConnectError, clearConnectError };
 };

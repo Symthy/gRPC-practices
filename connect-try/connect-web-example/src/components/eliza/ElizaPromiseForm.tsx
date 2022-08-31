@@ -7,7 +7,8 @@ import {
 import { ChangeEvent, FormEvent, useState } from "react";
 import { useConnectError } from "../../hooks/useConnectError";
 import { useSayMessages } from "../../hooks/useSayMessages";
-import { ElizaForm } from "./ElizaForm";
+import { ConnectErrorView } from "../ConnectErrorView";
+import { SendForm } from "../SendForm";
 
 type ElizaFormProps = {
   client: PromiseClient<typeof ElizaService>;
@@ -16,23 +17,26 @@ type ElizaFormProps = {
 export const ElizaPromiseForm = ({ client }: ElizaFormProps) => {
   const [inputValue, setInputValue] = useState("");
   const { messages, setSendMessage, setRecvMessage } = useSayMessages();
-  const { setConnectError, clearConnectError } = useConnectError();
+  const { connectError, setConnectError, clearConnectError } =
+    useConnectError();
 
   const onSendMessage = async (e: FormEvent) => {
     e.preventDefault();
     setInputValue("");
     setSendMessage(inputValue);
     clearConnectError();
+
     try {
       const response = await client.say({
         sentence: inputValue,
       });
-      setRecvMessage(response);
+      setRecvMessage(response.sentence);
     } catch (err) {
       // We have to verify err is a ConnectError before using it as one.
       if (err instanceof ConnectError) {
         setConnectError(err);
       }
+      console.log(err);
     }
   };
 
@@ -40,11 +44,14 @@ export const ElizaPromiseForm = ({ client }: ElizaFormProps) => {
     setInputValue(e.target.value);
 
   return (
-    <ElizaForm
-      inputValue={inputValue}
-      messages={messages}
-      setSendValue={setSendValue}
-      onSendMessage={onSendMessage}
-    ></ElizaForm>
+    <>
+      <SendForm
+        inputValue={inputValue}
+        messages={messages}
+        setSendValue={setSendValue}
+        onSendMessage={onSendMessage}
+      />
+      <ConnectErrorView err={connectError} />
+    </>
   );
 };

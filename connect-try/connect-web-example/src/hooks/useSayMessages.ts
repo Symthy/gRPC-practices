@@ -15,12 +15,12 @@ export const useSayMessages = () => {
     ]);
   };
 
-  const setRecvMessage = (response: SayResponse) => {
+  const setRecvMessage = (message: string) => {
     setMessages((prev) => [
       ...prev,
       {
         fromMe: false,
-        message: response.sentence,
+        message: message,
       },
     ]);
   };

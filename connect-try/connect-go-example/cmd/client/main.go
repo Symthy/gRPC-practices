@@ -26,7 +26,7 @@ func main() {
 		"http://localhost:8080/connect",
 		interceptors,
 	)
-	fmt.Println("[send request]")
+	fmt.Println("\n[send request]")
 	res, err := client.Greet(
 		context.Background(),
 		connect.NewRequest(&greetv1.GreetRequest{Name: "Jane"}),
@@ -35,9 +35,9 @@ func main() {
 		log.Println(err)
 		return
 	}
-	log.Println(res.Msg.Greeting)
+	fmt.Println(res.Msg.Greeting)
 
-	fmt.Println("[send request stream]")
+	fmt.Println("\n[send request client stream]")
 	clientStream := client.GreetStream(
 		context.Background(),
 	)
@@ -47,8 +47,29 @@ func main() {
 	time.Sleep(time.Second * 1)
 	res2, err := clientStream.CloseAndReceive()
 	if err != nil {
-		log.Println(err)
+		fmt.Println(err)
 		return
 	}
-	log.Println(res2.Msg.Greeting)
+	fmt.Print(res2.Msg.Greeting)
+
+	fmt.Println("\n[send request server stream]")
+	res3, err := client.GreetServerStream(
+		context.Background(),
+		connect.NewRequest(&greetv1.GreetRequest{Name: "SYM"}),
+	)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	for res3.Receive() {
+		fmt.Println(res3.Msg().GetGreeting())
+		printTrailer(res3)
+	}
+	printTrailer(res3)
+}
+
+func printTrailer[T any](res *connect.ServerStreamForClient[T]) {
+	fmt.Print("trailer: ")
+	fmt.Println(res.ResponseTrailer())
 }

@@ -5,8 +5,9 @@ import { useSayMessages } from "../../hooks/useSayMessages";
 import { SendForm } from "../SendForm";
 import { useLocalClient } from "../../hooks/useClient";
 import { ConnectErrorView } from "../ConnectErrorView";
+import { FormProps } from "../../types";
 
-export const GreetForm = () => {
+export const GreetForm = ({ title }: FormProps) => {
   const [inputValue, setInputValue] = useState("");
   const client = useLocalClient();
   const { messages, setSendMessage, setRecvMessage } = useSayMessages();
@@ -41,6 +42,7 @@ export const GreetForm = () => {
   return (
     <>
       <SendForm
+        title={title}
         inputValue={inputValue}
         messages={messages}
         setSendValue={setSendValue}

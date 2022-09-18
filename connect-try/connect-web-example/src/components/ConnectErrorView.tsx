@@ -1,15 +1,16 @@
 import { codeToString, ConnectError } from "@bufbuild/connect-web";
-import { useConnectError } from "../hooks/useConnectError";
 
 type ConnectErrorViewProps = {
-  err: ConnectError | undefined;
+  err?: ConnectError;
 };
 
 export const ConnectErrorView = ({ err }: ConnectErrorViewProps) => {
   console.log("lood error view");
   const isError = !!err;
   const errorMessage = isError
-    ? `Code: ${codeToString(err.code)} | Message: ${err.rawMessage}`
+    ? `Code: ${err.code} - ${codeToString(err.code)} | Message: ${
+        err.rawMessage
+      }`
     : "";
   return (
     <>

@@ -7,8 +7,9 @@ import { SendForm } from "../SendForm";
 import { useIntroduceMessages } from "../../hooks/useIntroduceMessage";
 import { ConnectErrorView } from "../ConnectErrorView";
 import { useConnectError } from "../../hooks/useConnectError";
+import { FormProps } from "../../types";
 
-export const ElizaStreamingForm = () => {
+export const ElizaStreamingForm = ({ title }: FormProps) => {
   const client = useCallbackClient(ElizaService);
   const { inputValue, setInputValue, setInputValueFromChangeEvent } =
     useInputValue();
@@ -41,6 +42,7 @@ export const ElizaStreamingForm = () => {
   return (
     <>
       <SendForm
+        title={title}
         inputValue={inputValue}
         messages={messages}
         setSendValue={setInputValueFromChangeEvent}

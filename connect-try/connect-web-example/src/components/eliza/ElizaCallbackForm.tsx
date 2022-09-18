@@ -1,13 +1,14 @@
 import { ElizaService } from "@buf/bufbuild_connect-web_bufbuild_eliza/buf/connect/demo/eliza/v1/eliza_connectweb";
-import { useCallbackClient, usePromiseClient } from "../../hooks/useClient";
+import { useCallbackClient } from "../../hooks/useClient";
 import { ChangeEvent, FormEvent, useState } from "react";
 import { useSayMessages } from "../../hooks/useSayMessages";
 import { SendForm } from "../SendForm";
 import { ConnectErrorView } from "../ConnectErrorView";
 import { ConnectError } from "@bufbuild/connect-web";
 import { useConnectError } from "../../hooks/useConnectError";
+import { FormProps } from "../../types";
 
-export const ElizaCallbackForm = () => {
+export const ElizaCallbackForm = ({ title }: FormProps) => {
   const client = useCallbackClient(ElizaService);
   const [inputValue, setInputValue] = useState("");
   const { messages, setSendMessage, setRecvMessage } = useSayMessages();
@@ -39,6 +40,7 @@ export const ElizaCallbackForm = () => {
   return (
     <>
       <SendForm
+        title={title}
         inputValue={inputValue}
         messages={messages}
         setSendValue={setSendValue}

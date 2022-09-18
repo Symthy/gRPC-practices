@@ -7,14 +7,15 @@ import {
 import { ChangeEvent, FormEvent, useState } from "react";
 import { useConnectError } from "../../hooks/useConnectError";
 import { useSayMessages } from "../../hooks/useSayMessages";
+import { FormProps } from "../../types";
 import { ConnectErrorView } from "../ConnectErrorView";
 import { SendForm } from "../SendForm";
 
 type ElizaFormProps = {
   client: PromiseClient<typeof ElizaService>;
-};
+} & FormProps;
 
-export const ElizaPromiseForm = ({ client }: ElizaFormProps) => {
+export const ElizaPromiseForm = ({ client, title }: ElizaFormProps) => {
   const [inputValue, setInputValue] = useState("");
   const { messages, setSendMessage, setRecvMessage } = useSayMessages();
   const { connectError, setConnectError, clearConnectError } =
@@ -46,6 +47,7 @@ export const ElizaPromiseForm = ({ client }: ElizaFormProps) => {
   return (
     <>
       <SendForm
+        title={title}
         inputValue={inputValue}
         messages={messages}
         setSendValue={setSendValue}

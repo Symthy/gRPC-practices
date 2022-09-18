@@ -56,7 +56,7 @@ func doGreetWork(ctx context.Context, msg *greetv1.GreetRequest) (string, error)
 	return fmt.Sprintf("Hello, %s!", msg.Name), nil
 }
 
-func (s *GreetServer) GreetStream(
+func (s *GreetServer) GreetByClientStreaming(
 	ctx context.Context,
 	stream *connect.ClientStream[greetv1.GreetRequest],
 ) (*connect.Response[greetv1.GreetResponse], error) {
@@ -79,10 +79,10 @@ func (s *GreetServer) GreetStream(
 	return res, nil
 }
 
-func (s *GreetServer) GreetServerStream(
+func (s *GreetServer) GreetByServerStreaming(
 	ctx context.Context,
 	req *connect.Request[greetv1.GreetRequest],
-	resStream *connect.ServerStream[greetv1.GreetResponse],
+	streamRes *connect.ServerStream[greetv1.GreetResponse],
 ) error {
 	log.Println("Request headers: ", req.Header())
 
@@ -90,14 +90,14 @@ func (s *GreetServer) GreetServerStream(
 		return connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	resStream.ResponseTrailer().Set("Greet-Version", "v1")
+	streamRes.ResponseTrailer().Set("Greet-Version", "v1")
 	strs := strings.Split(req.Msg.Name, "")
 	for i, str := range strs {
 		greeting := "greeting " + strconv.Itoa(i+1) + " : " + str
 		res := &greetv1.GreetResponse{
 			Greeting: greeting,
 		}
-		resStream.Send(res)
+		streamRes.Send(res)
 	}
 
 	return nil

@@ -3,6 +3,7 @@ import { Message } from "../types";
 import { ConnectErrorView } from "./ConnectErrorView";
 
 type SendFormProps = {
+  title: string;
   inputValue: string;
   messages: Message[];
   setSendValue: (e: ChangeEvent<HTMLInputElement>) => void;
@@ -10,6 +11,7 @@ type SendFormProps = {
 };
 
 export const SendForm = ({
+  title,
   inputValue,
   messages,
   setSendValue,
@@ -18,6 +20,7 @@ export const SendForm = ({
   console.log("load send form");
   return (
     <>
+      <p>{title}</p>
       <ol>
         {messages.map((msg, index) => (
           <li key={index}>

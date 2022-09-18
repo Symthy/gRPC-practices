@@ -26,7 +26,7 @@ func main() {
 		"http://localhost:8080/connect",
 		interceptors,
 	)
-	fmt.Println("\n[send request]")
+	fmt.Println("\n[send request: Unary RPC]")
 	res, err := client.Greet(
 		context.Background(),
 		connect.NewRequest(&greetv1.GreetRequest{Name: "Jane"}),
@@ -37,8 +37,8 @@ func main() {
 	}
 	fmt.Println(res.Msg.Greeting)
 
-	fmt.Println("\n[send request client stream]")
-	clientStream := client.GreetStream(
+	fmt.Println("\n[send request: Client-side Streaming RPC]")
+	clientStream := client.GreetByClientStreaming(
 		context.Background(),
 	)
 	clientStream.Send(&greetv1.GreetRequest{Name: "Verstappen"})
@@ -52,8 +52,8 @@ func main() {
 	}
 	fmt.Print(res2.Msg.Greeting)
 
-	fmt.Println("\n[send request server stream]")
-	res3, err := client.GreetServerStream(
+	fmt.Println("\n[send request: Server-side Streaming RPC]")
+	res3, err := client.GreetByServerStreaming(
 		context.Background(),
 		connect.NewRequest(&greetv1.GreetRequest{Name: "SYM"}),
 	)
@@ -64,12 +64,7 @@ func main() {
 
 	for res3.Receive() {
 		fmt.Println(res3.Msg().GetGreeting())
-		printTrailer(res3)
+		fmt.Printf("trailer: %v\n", res3.ResponseTrailer())
 	}
-	printTrailer(res3)
-}
-
-func printTrailer[T any](res *connect.ServerStreamForClient[T]) {
-	fmt.Print("trailer: ")
-	fmt.Println(res.ResponseTrailer())
+	fmt.Printf("trailer: %v\n", res3.ResponseTrailer())
 }
